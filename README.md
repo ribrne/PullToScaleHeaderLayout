@@ -2,8 +2,7 @@
 
 ![demo](ScreenShots/demo.gif)
 
-More screenshots: [without bg](ScreenShots/pic_hd.jpg) and [with
-cover_bg](ScreenShots/pic_hd_1.jpg).
+More screenshots: [bg](ScreenShots/pic_hd.jpg) and [cover_bg](ScreenShots/pic_hd_1.jpg).
 
 ## 基本功能和应用场景
 1基于三方开源项目PullToRefresh实现一个下拉发大头部的功能,该功能适用于个人中心
