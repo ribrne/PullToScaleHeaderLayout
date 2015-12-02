@@ -1,9 +1,9 @@
 # PullToScaleHeaderLayout
 
-![demo](Screenshots/demo.gif)
+![demo](ScreenShots/demo.gif)
 
-More screenshots: [without bg](Screenshots/pic_hd.png) and [with
-cover_bg](Screenshots/pic_hd1.png).
+More screenshots: [without bg](ScreenShots/pic_hd.png) and [with
+cover_bg](ScreenShots/pic_hd1.png).
 
 ## 基本功能和应用场景
 1基于三方开源项目PullToRefresh实现一个下拉发大头部的功能,该功能适用于个人中心
