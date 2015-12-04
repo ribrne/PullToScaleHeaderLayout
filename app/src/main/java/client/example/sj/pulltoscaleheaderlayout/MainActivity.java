@@ -20,15 +20,15 @@ public class MainActivity extends AppCompatActivity {
 
     private final static int MIN_HEIGHT = 48;
 
-    private PullToScrollLayout pullToScrollLayout;
+    private PullToScaleHeaderLayout pullToScrollLayout;
 
     private ImageView fadeCover;
 
     private ImageView cover;
 
-    private int maxHeight;
+    private int heightOfHeader;
 
-    private int minHeight;
+    private int heightOfFooter;
 
     private ArrayAdapter<String> arrayAdapter;
 
@@ -41,29 +41,33 @@ public class MainActivity extends AppCompatActivity {
 
     private void initScrollToScaleHeaderLayout() {
         ArrayList<String> arrayList = new ArrayList<>();
-        for(int i = 0 ; i < 30; i++) {
+        for(int i = 0 ; i < 10; i++) {
             arrayList.add("text" + i);
         }
         arrayAdapter = new ArrayAdapter<>(this,R.layout.list_item_layout,arrayList);
-        maxHeight = dipToPx(this,MAX_HEIGHT);
-        minHeight = dipToPx(this,MIN_HEIGHT);
-        pullToScrollLayout = (PullToScrollLayout)findViewById(R.id.pull_to_scroll_layout);
+        heightOfHeader = dipToPx(this,MAX_HEIGHT);
+        heightOfFooter = dipToPx(this,MIN_HEIGHT);
+        pullToScrollLayout = (PullToScaleHeaderLayout)findViewById(R.id.pull_to_scroll_layout);
         fadeCover = (ImageView)findViewById(R.id.fade_cover);
         cover = (ImageView)findViewById(R.id.cover);
-        pullToScrollLayout.setMaxHeightOfHeader(maxHeight);
-        pullToScrollLayout.setMinHeightOfHeader(minHeight);
+//        fadeCover.setVisibility(View.GONE);
+//        cover.setVisibility(View.GONE);
+        pullToScrollLayout.setHeightOfHeader(heightOfHeader);
+        pullToScrollLayout.setHeightOfFooter(heightOfFooter);
         pullToScrollLayout.setAdapter(arrayAdapter);
-        pullToScrollLayout.setOnViewScrollChangedListener(new PullToScrollLayout.OnViewScrollChangedListener() {
+        pullToScrollLayout.setOnScrollChangedListener(new PullToScaleHeaderLayout.OnScrollChangedListener() {
             @Override
-            public void scrollChanged(float scrollDistance, boolean isDragged) {
-                if (isDragged) {
-                    //isDragged true的情况下代表整个layout正在被拖动,false代表listView正常滚动
-                    float friction = (scrollDistance + maxHeight) / maxHeight;
-                    float alphaFriction = maxHeight / (scrollDistance + maxHeight);
-                    scaleView(friction,friction,cover,fadeCover);
-                    setAlpha(alphaFriction,fadeCover);
-                    setTranslate(0,scrollDistance / 2,cover,fadeCover);
-                }
+            public void headerScrollChanged(float scrollDistance) {
+                float friction = scrollDistance / heightOfHeader;
+                float alphaFriction = heightOfHeader / scrollDistance;
+                scaleView(friction,friction,cover,fadeCover);
+                setAlpha(alphaFriction,fadeCover);
+                setTranslate(0,(scrollDistance - heightOfHeader) / 2,cover,fadeCover);
+            }
+
+            @Override
+            public void footerScrollChanged(float scrollDistance) {
+
             }
         });
     }

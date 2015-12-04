@@ -3,10 +3,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <client.example.sj.pulltoscaleheaderlayout.PullToScrollLayout
+    <client.example.sj.pulltoscaleheaderlayout.PullToScaleHeaderLayout
         android:id="@+id/pull_to_scroll_layout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:dividerHeight="0dp"
+        android:divider="@null"
+        android:overScrollMode="never"/>
 
     <ImageView
         android:id="@+id/cover"
