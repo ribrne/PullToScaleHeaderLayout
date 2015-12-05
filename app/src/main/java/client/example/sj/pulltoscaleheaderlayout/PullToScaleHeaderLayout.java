@@ -133,8 +133,8 @@ public class PullToScaleHeaderLayout extends ListView {
                 mLastX = ev.getX();
                 mLastY = ev.getY() ;
                 isTouchEventConsumed = false;
-                isScrollingBack = false;
                 recordScrollDistance();
+                isScrollingBack = false;
                 break;
             case MotionEvent.ACTION_POINTER_UP:
                 isResetCoordinateNeeded = true;
@@ -154,7 +154,7 @@ public class PullToScaleHeaderLayout extends ListView {
                 oppositeDiff = x - mLastX;
                 absDiff = Math.abs(diff);
                 absOppositeDiff = Math.abs(oppositeDiff);
-                if(absDiff > absOppositeDiff) {
+                if(absDiff > mTouchSlop && absDiff > absOppositeDiff) {
                     if (diff <= -1f) {
                         currentMode = SCROLL_UP;
                     } else if (diff >= 1f) {
