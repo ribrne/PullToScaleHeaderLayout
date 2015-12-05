@@ -184,6 +184,12 @@ public class PullToScaleHeaderLayout extends ListView {
         }
     }
 
+    private void clearRecordDistance() {
+        if (headerLayoutParams.height == heightOfActionBar) {
+            mRecordDistance = 0;
+        }
+    }
+
     private void scrollBack() {
         if (mLastDistance > 0) {
             scrollBackToTop();
@@ -219,30 +225,31 @@ public class PullToScaleHeaderLayout extends ListView {
         detectTouchEventConsumed();
         if (currentMode == SCROLL_DOWN) {
             if (footerLayoutParams.height > heightOfFooter) {
-                isBeingDraggedToBottom();
+                isBeingDraggedFromBottom();
             } else if (isFirstViewVisible()) {
-                isBeingDraggedToTop();
+                isBeingDraggedFromTop();
             }
         }
         if (currentMode == SCROLL_UP) {
             if (headerLayoutParams.height > heightOfActionBar) {
-                isBeingDraggedToTop();
+                isBeingDraggedFromTop();
             } else {
                 isResetCoordinateNeeded = true;
             }
             if (isLastViewVisible()) {
-                isBeingDraggedToBottom();
+                isBeingDraggedFromBottom();
             }
         }
     }
 
-    private void isBeingDraggedToTop() {
+    private void isBeingDraggedFromTop() {
+        clearRecordDistance();
         int totalScrollDistance = (int) ((mLastDistance + mRecordDistance) / FRICTION);
         int changedHeight = Math.max(mTouchSlop, heightOfHeader) + totalScrollDistance;
         updateHeightOfHeader(changedHeight);
     }
 
-    private void isBeingDraggedToBottom() {
+    private void isBeingDraggedFromBottom() {
         if (mLastDistance >= 0) {
             updateHeightOfFooter(heightOfFooter);
         } else {
