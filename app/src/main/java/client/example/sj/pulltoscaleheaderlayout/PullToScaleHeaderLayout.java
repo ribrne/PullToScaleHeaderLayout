@@ -184,9 +184,9 @@ public class PullToScaleHeaderLayout extends ListView {
         }
     }
 
-    private void clearRecordDistance() {
+    private void recordWhenArriveEnd() {
         if (headerLayoutParams.height == heightOfActionBar) {
-            mRecordDistance = 0;
+            mRecordDistance = (int) ((headerLayoutParams.height - heightOfHeader) * FRICTION);
         }
     }
 
@@ -243,7 +243,7 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     private void isBeingDraggedFromTop() {
-        clearRecordDistance();
+        recordWhenArriveEnd();
         int totalScrollDistance = (int) ((mLastDistance + mRecordDistance) / FRICTION);
         int changedHeight = Math.max(mTouchSlop, heightOfHeader) + totalScrollDistance;
         updateHeightOfHeader(changedHeight);
