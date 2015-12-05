@@ -3,6 +3,7 @@ package client.example.sj.pulltoscaleheaderlayout;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -30,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
 
     private int heightOfFooter;
 
+    private int heightOfActionBar;
+
     private ArrayAdapter<String> arrayAdapter;
 
     @Override
@@ -47,22 +50,28 @@ public class MainActivity extends AppCompatActivity {
         arrayAdapter = new ArrayAdapter<>(this,R.layout.list_item_layout,arrayList);
         heightOfHeader = dipToPx(this,MAX_HEIGHT);
         heightOfFooter = dipToPx(this,MIN_HEIGHT);
+        heightOfActionBar = dipToPx(this,MIN_HEIGHT);
         pullToScrollLayout = (PullToScaleHeaderLayout)findViewById(R.id.pull_to_scroll_layout);
         fadeCover = (ImageView)findViewById(R.id.fade_cover);
         cover = (ImageView)findViewById(R.id.cover);
 //        fadeCover.setVisibility(View.GONE);
 //        cover.setVisibility(View.GONE);
+        pullToScrollLayout.setHeightOfActionBar(heightOfActionBar);
         pullToScrollLayout.setHeightOfHeader(heightOfHeader);
         pullToScrollLayout.setHeightOfFooter(heightOfFooter);
         pullToScrollLayout.setAdapter(arrayAdapter);
         pullToScrollLayout.setOnScrollChangedListener(new PullToScaleHeaderLayout.OnScrollChangedListener() {
             @Override
             public void headerScrollChanged(float scrollDistance) {
-                float friction = scrollDistance / heightOfHeader;
-                float alphaFriction = heightOfHeader / scrollDistance;
-                scaleView(friction,friction,cover,fadeCover);
-                setAlpha(alphaFriction,fadeCover);
-                setTranslate(0,(scrollDistance - heightOfHeader) / 2,cover,fadeCover);
+                if (scrollDistance < heightOfHeader) {
+                    setTranslate(0,scrollDistance - heightOfHeader,cover,fadeCover);
+                } else {
+                    float friction = scrollDistance / heightOfHeader;
+                    float alphaFriction = heightOfHeader / scrollDistance;
+                    scaleView(friction,friction,cover,fadeCover);
+                    setAlpha(alphaFriction,fadeCover);
+                    setTranslate(0,(scrollDistance - heightOfHeader) / 2,cover,fadeCover);
+                }
             }
 
             @Override
