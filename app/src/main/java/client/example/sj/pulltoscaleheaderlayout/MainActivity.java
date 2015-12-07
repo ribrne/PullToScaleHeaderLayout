@@ -63,20 +63,16 @@ public class MainActivity extends AppCompatActivity {
         pullToScrollLayout.setOnScrollChangedListener(new PullToScaleHeaderLayout.OnScrollChangedListener() {
             @Override
             public void headerScrollChanged(float scrollDistance) {
-                if (scrollDistance < heightOfHeader) {
-                    setTranslate(0,scrollDistance - heightOfHeader,cover,fadeCover);
-                } else {
-                    float friction = scrollDistance / heightOfHeader;
-                    float alphaFriction = heightOfHeader / scrollDistance;
-                    scaleView(friction,friction,cover,fadeCover);
-                    setAlpha(alphaFriction,fadeCover);
-                    setTranslate(0,(scrollDistance - heightOfHeader) / 2,cover,fadeCover);
-                }
+                float friction = scrollDistance / heightOfHeader;
+                float alphaFriction = heightOfHeader / scrollDistance;
+                scaleView(friction,friction,cover,fadeCover);
+                setAlpha(alphaFriction,fadeCover);
+                setTranslate(0,(scrollDistance - heightOfHeader) / 2,cover,fadeCover);
             }
 
             @Override
-            public void footerScrollChanged(float scrollDistance) {
-
+            public void actionBarTranslate(float translateDistance) {
+                setTranslate(0,translateDistance,cover,fadeCover);
             }
         });
     }
