@@ -1,8 +1,9 @@
 package client.example.sj.pulltoscaleheaderlayout;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +19,8 @@ import android.widget.Scroller;
 public class PullToScaleHeaderLayout extends ListView {
 
     static final int SCROLL_DURATION = 500;
+
+    static final int DELAY = 50;
 
     static final float FRICTION = 2.0f;
 
@@ -49,17 +52,19 @@ public class PullToScaleHeaderLayout extends ListView {
 
     private int mRecordDistance;
 
+    private boolean isAllowedToScrollBack;
+
     private boolean isTouchEventConsumed;
 
     private boolean isResetCoordinateNeeded;
-
-    private boolean isScrollingBack;
 
     private Interpolator interpolator;
 
     private OnScrollChangedListener onScrollChangedListener;
 
     private Scroller scroller;
+
+    private Handler scrollBackHandler;
 
     public PullToScaleHeaderLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -75,6 +80,7 @@ public class PullToScaleHeaderLayout extends ListView {
         header = new View(context,attributeSet);
         footer = new View(context,attributeSet);
         interpolator = new DecelerateInterpolator();
+        scrollBackHandler = new Handler(Looper.getMainLooper());
         scroller = new Scroller(context,interpolator);
         headerLayoutParams = new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,heightOfHeader);
         footerLayoutParams = new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,heightOfFooter);
@@ -104,7 +110,8 @@ public class PullToScaleHeaderLayout extends ListView {
             if (this.onScrollChangedListener != null) {
                 onScrollChangedListener.headerScrollChanged(newHeight);
             }
-        } else {
+        }
+        if(newHeight <= this.heightOfHeader) {
             if (this.onScrollChangedListener != null) {
                 onScrollChangedListener.actionBarTranslate(newHeight - heightOfHeader);
             }
@@ -131,12 +138,14 @@ public class PullToScaleHeaderLayout extends ListView {
             case MotionEvent.ACTION_DOWN:
                 mDownY = mLastY = ev.getY() ;
                 isTouchEventConsumed = false;
+                isAllowedToScrollBack = false;
+                scroller.forceFinished(false);
+                scrollBackHandler.removeCallbacks(runnable);
                 recordScrollDistance();
-                isScrollingBack = false;
                 break;
             case MotionEvent.ACTION_POINTER_UP:
-                isResetCoordinateNeeded = true;
                 recordScrollDistance();
+                isResetCoordinateNeeded = true;
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
                 break;
@@ -148,18 +157,20 @@ public class PullToScaleHeaderLayout extends ListView {
                 diff = mLastY - mDownY;
                 if (diff <= -1f) {
                     currentMode = SCROLL_UP;
+                    mLastDistance = (int)diff;
+                    scrolling();
                 } else if (diff >= 1f) {
                     clearFocus();
                     currentMode = SCROLL_DOWN;
+                    mLastDistance = (int) diff;
+                    scrolling();
                 }
-                mLastDistance = (int)diff;
-                scrolling();
                 break;
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
-                isScrollingBack = true;
-                isTouchEventConsumed =false;
-                scrollBack();
+                isAllowedToScrollBack = true;
+                isTouchEventConsumed = false;
+                scrollBackHandler.postDelayed(runnable,DELAY);
                 break;
         }
         if (isTouchEventConsumed) {
@@ -178,7 +189,6 @@ public class PullToScaleHeaderLayout extends ListView {
     private void recordScrollDistance() {
         if (headerLayoutParams.height >= heightOfActionBar) {
             mRecordDistance = (int) ((headerLayoutParams.height - heightOfHeader) * FRICTION);
-            isResetCoordinateNeeded = true;
         }
     }
 
@@ -191,7 +201,7 @@ public class PullToScaleHeaderLayout extends ListView {
         }
     }
 
-    private void scrollBack() {
+    private void scrollingBack() {
         if (mLastDistance > 0) {
             scrollBackToTop();
         }
@@ -217,13 +227,11 @@ public class PullToScaleHeaderLayout extends ListView {
         detectTouchEventConsumed();
         if (currentMode == SCROLL_DOWN) {
             if (isFirstViewVisible()) {
-                Log.e("PullToScaleHeader","向下滚动" + mLastDistance);
                 isBeingDraggedFromTop();
             }
         }
         if (currentMode == SCROLL_UP) {
             if (headerLayoutParams.height > heightOfActionBar) {
-                Log.e("PullToScaleHeader","向上滚动" + mLastDistance);
                 isBeingDraggedFromTop();
             }
         }
@@ -245,18 +253,29 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     @Override
-    public void computeScroll() {
+    public synchronized void computeScroll() {
         if (scroller.computeScrollOffset()) {
-            if (isScrollingBack) {
+            if (isAllowedToScrollBack) {
                 if (heightOfHeader < headerLayoutParams.height) {
                     resizeHeightOfHeader(scroller.getCurrY());
-                }
-                if (heightOfFooter < footerLayoutParams.height) {
-                    resizeHeightOfFooter(scroller.getCurrY());
                 }
                 super.computeScroll();
             }
         }
+    }
+
+    private Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isAllowedToScrollBack) {
+                scrollingBack();
+            }
+        }
+    };
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
     }
 
     public interface OnScrollChangedListener {
