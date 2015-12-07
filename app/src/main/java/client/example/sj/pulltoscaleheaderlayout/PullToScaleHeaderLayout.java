@@ -155,7 +155,7 @@ public class PullToScaleHeaderLayout extends ListView {
                 mLastY = ev.getY();
                 final float diff;
                 resetCoordinateIfNeeded();
-                recordWhenHeaderReachesTheEnd();
+                resetCoordinateWhenHeaderReachesTheEnd();
                 diff = mLastY - mDownY;
                 if (diff <= -1f) {
                     currentMode = SCROLL_UP;
@@ -194,7 +194,7 @@ public class PullToScaleHeaderLayout extends ListView {
         }
     }
 
-    private void recordWhenHeaderReachesTheEnd() {
+    private void resetCoordinateWhenHeaderReachesTheEnd() {
         if (headerLayoutParams.height == heightOfActionBar) {
             if (mLastY - mDownY <= -1) {
                 mRecordDistance = (int) ((headerLayoutParams.height - heightOfHeader) * FRICTION);
