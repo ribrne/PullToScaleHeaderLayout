@@ -148,6 +148,8 @@ public class PullToScaleHeaderLayout extends ListView {
                 isResetCoordinateNeeded = true;
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
+                isResetCoordinateNeeded = true;
+                recordScrollDistance();
                 break;
             case MotionEvent.ACTION_MOVE:
                 mLastY = ev.getY();
@@ -259,8 +261,8 @@ public class PullToScaleHeaderLayout extends ListView {
                 if (heightOfHeader < headerLayoutParams.height) {
                     resizeHeightOfHeader(scroller.getCurrY());
                 }
-                super.computeScroll();
             }
+            super.computeScroll();
         }
     }
 
