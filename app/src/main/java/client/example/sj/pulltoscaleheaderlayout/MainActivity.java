@@ -73,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void actionBarTranslate(float translateDistance) {
                 setTranslate(0, translateDistance, cover, fadeCover);
+                scaleView(1,1,cover,fadeCover);
             }
 
         });

@@ -2,7 +2,6 @@ package client.example.sj.pulltoscaleheaderlayout;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,7 +16,7 @@ import android.widget.Scroller;
  */
 public class PullToScaleHeaderLayout extends ListView {
 
-    static final int SCROLL_DURATION = 300;
+    static final int SCROLL_DURATION = 500;
 
     static final float OFFSET = 4f;
 
@@ -108,7 +107,6 @@ public class PullToScaleHeaderLayout extends ListView {
         if (newHeight == currentHeightOfHeader) {
             return;
         }
-        Log.e("PullScrollHeader","" + mLastDistance + " " + "mLastY" + mLastY + " " + "mDownY" + mDownY + " " + "record" + mRecordDistance + " " + "新高度" + newHeight + " " + "headerHeight" + currentHeightOfHeader);
         currentHeightOfHeader = newHeight;
         notifyHeaderScrollChanged(currentHeightOfHeader);
         headerLayoutParams.height = currentHeightOfHeader;
