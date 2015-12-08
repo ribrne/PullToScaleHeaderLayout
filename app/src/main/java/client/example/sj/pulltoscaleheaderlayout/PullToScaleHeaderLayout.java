@@ -1,8 +1,6 @@
 package client.example.sj.pulltoscaleheaderlayout;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -20,7 +18,7 @@ public class PullToScaleHeaderLayout extends ListView {
 
     static final int SCROLL_DURATION = 500;
 
-    static final int DELAY = 50;
+    static final float OFFSET = 4f;
 
     static final float FRICTION = 2.0f;
 
@@ -60,11 +58,9 @@ public class PullToScaleHeaderLayout extends ListView {
 
     private Interpolator interpolator;
 
-    private OnScrollChangedListener onScrollChangedListener;
+    private OnHeaderScrollChangedListener onHeaderScrollChangedListener;
 
     private Scroller scroller;
-
-    private Handler scrollBackHandler;
 
     public PullToScaleHeaderLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -80,7 +76,6 @@ public class PullToScaleHeaderLayout extends ListView {
         header = new View(context,attributeSet);
         footer = new View(context,attributeSet);
         interpolator = new DecelerateInterpolator();
-        scrollBackHandler = new Handler(Looper.getMainLooper());
         scroller = new Scroller(context,interpolator);
         headerLayoutParams = new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,heightOfHeader);
         footerLayoutParams = new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,heightOfFooter);
@@ -106,16 +101,6 @@ public class PullToScaleHeaderLayout extends ListView {
         if (newHeight < this.heightOfActionBar) {
             newHeight = this.heightOfActionBar;
         }
-        if (newHeight >= this.heightOfHeader) {
-            if (this.onScrollChangedListener != null) {
-                onScrollChangedListener.headerScrollChanged(newHeight);
-            }
-        }
-        if(newHeight <= this.heightOfHeader) {
-            if (this.onScrollChangedListener != null) {
-                onScrollChangedListener.actionBarTranslate(newHeight - heightOfHeader);
-            }
-        }
         headerLayoutParams.height = newHeight;
         header.setLayoutParams(headerLayoutParams);
     }
@@ -128,8 +113,8 @@ public class PullToScaleHeaderLayout extends ListView {
         footer.setLayoutParams(footerLayoutParams);
     }
 
-    public void setOnScrollChangedListener(OnScrollChangedListener onScrollChangedListener) {
-        this.onScrollChangedListener = onScrollChangedListener;
+    public void setOnHeaderScrollChangedListener(OnHeaderScrollChangedListener onHeaderScrollChangedListener) {
+        this.onHeaderScrollChangedListener = onHeaderScrollChangedListener;
     }
 
     @Override
@@ -140,7 +125,6 @@ public class PullToScaleHeaderLayout extends ListView {
                 isTouchEventConsumed = false;
                 isAllowedToScrollBack = false;
                 scroller.forceFinished(false);
-                scrollBackHandler.removeCallbacks(runnable);
                 recordScrollDistance();
                 break;
             case MotionEvent.ACTION_POINTER_UP:
@@ -172,7 +156,9 @@ public class PullToScaleHeaderLayout extends ListView {
             case MotionEvent.ACTION_UP:
                 isAllowedToScrollBack = true;
                 isTouchEventConsumed = false;
-                scrollBackHandler.postDelayed(runnable,DELAY);
+                if (mLastDistance > 0) {
+                    scrollBackToTop();
+                }
                 break;
         }
         if (isTouchEventConsumed) {
@@ -196,16 +182,14 @@ public class PullToScaleHeaderLayout extends ListView {
 
     private void resetCoordinateWhenHeaderReachesTheEnd() {
         if (headerLayoutParams.height == heightOfActionBar) {
-            if (mLastY - mDownY <= -1) {
-                mRecordDistance = (int) ((headerLayoutParams.height - heightOfHeader) * FRICTION);
-                mDownY = mLastY;
+            mRecordDistance = (int) ((headerLayoutParams.height - heightOfHeader) * FRICTION);
+            if (isLastViewVisible()) {
+                if (mLastY - mDownY <= 0) {
+                    mDownY = mLastY;
+                }
+            } else if(isFirstViewVisible()) {
+                mDownY = mLastY - OFFSET;
             }
-        }
-    }
-
-    private void scrollingBack() {
-        if (mLastDistance > 0) {
-            scrollBackToTop();
         }
     }
 
@@ -217,7 +201,7 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     private void detectTouchEventConsumed() {
-        if (headerLayoutParams.height > heightOfActionBar) {
+        if (isFirstViewVisible() && headerLayoutParams.height > heightOfActionBar) {
             clearFocus();
             isTouchEventConsumed = true;
         } else {
@@ -242,7 +226,24 @@ public class PullToScaleHeaderLayout extends ListView {
     private void isBeingDraggedFromTop() {
         int totalScrollDistance = (int) ((mLastDistance + mRecordDistance) / FRICTION);
         int changedHeight = heightOfHeader + totalScrollDistance;
+        notifyHeaderScrollChanged(changedHeight);
         resizeHeightOfHeader(changedHeight);
+    }
+
+    private void notifyHeaderScrollChanged(int changedHeight) {
+        int scrollDistance = changedHeight - heightOfHeader;
+        if (scrollDistance > 0) {
+            if (this.onHeaderScrollChangedListener != null) {
+                onHeaderScrollChangedListener.headerScrollChanged(scrollDistance);
+            }
+        } else {
+            if (scrollDistance <= heightOfActionBar - heightOfHeader) {
+                scrollDistance = heightOfActionBar - heightOfHeader;
+            }
+            if (this.onHeaderScrollChangedListener != null) {
+                onHeaderScrollChangedListener.actionBarTranslate(scrollDistance);
+            }
+        }
     }
 
     private boolean isFirstViewVisible() {
@@ -254,11 +255,20 @@ public class PullToScaleHeaderLayout extends ListView {
         }
     }
 
+    private boolean isLastViewVisible() {
+        View view = getChildAt(getCount() - 1);
+        if (view == null) {
+            return false;
+        }
+        return view.getBottom() <= getBottom();
+    }
+
     @Override
     public synchronized void computeScroll() {
         if (scroller.computeScrollOffset()) {
             if (isAllowedToScrollBack) {
                 if (heightOfHeader < headerLayoutParams.height) {
+                    notifyHeaderScrollChanged(scroller.getCurrY());
                     resizeHeightOfHeader(scroller.getCurrY());
                 }
             }
@@ -266,21 +276,12 @@ public class PullToScaleHeaderLayout extends ListView {
         }
     }
 
-    private Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            if (isAllowedToScrollBack) {
-                scrollingBack();
-            }
-        }
-    };
-
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
     }
 
-    public interface OnScrollChangedListener {
+    public interface OnHeaderScrollChangedListener {
         void headerScrollChanged(float scrollDistance);
         void actionBarTranslate(float translateDistance);
     }

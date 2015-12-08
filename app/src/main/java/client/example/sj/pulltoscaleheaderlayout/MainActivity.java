@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initScrollToScaleHeaderLayout() {
         ArrayList<String> arrayList = new ArrayList<>();
-        for(int i = 0 ; i < 10; i++) {
+        for(int i = 0 ; i < 15; i++) {
             arrayList.add("text" + i);
         }
         arrayAdapter = new ArrayAdapter<>(this,R.layout.list_item_layout,arrayList);
@@ -60,20 +60,21 @@ public class MainActivity extends AppCompatActivity {
         pullToScrollLayout.setHeightOfHeader(heightOfHeader);
         pullToScrollLayout.setHeightOfFooter(heightOfFooter);
         pullToScrollLayout.setAdapter(arrayAdapter);
-        pullToScrollLayout.setOnScrollChangedListener(new PullToScaleHeaderLayout.OnScrollChangedListener() {
+        pullToScrollLayout.setOnHeaderScrollChangedListener(new PullToScaleHeaderLayout.OnHeaderScrollChangedListener() {
             @Override
             public void headerScrollChanged(float scrollDistance) {
-                float friction = scrollDistance / heightOfHeader;
-                float alphaFriction = heightOfHeader / scrollDistance;
+                float friction = (scrollDistance + heightOfHeader) / heightOfHeader;
+                float alphaFriction = heightOfHeader / (scrollDistance + heightOfHeader);
                 scaleView(friction,friction,cover,fadeCover);
                 setAlpha(alphaFriction,fadeCover);
-                setTranslate(0,(scrollDistance - heightOfHeader) / 2,cover,fadeCover);
+                setTranslate(0,(int)scrollDistance / 2,cover,fadeCover);
             }
 
             @Override
             public void actionBarTranslate(float translateDistance) {
-                setTranslate(0,translateDistance,cover,fadeCover);
+                setTranslate(0, translateDistance, cover, fadeCover);
             }
+
         });
     }
 
@@ -90,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void setTranslate(float offsetX,float offsetY,View... params) {
+    private synchronized void setTranslate(float offsetX,float offsetY,View... params) {
         for (int i = 0 ; i < params.length; i++) {
             params[i].setTranslationX(offsetX);
             params[i].setTranslationY(offsetY);
