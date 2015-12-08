@@ -143,6 +143,7 @@ public class PullToScaleHeaderLayout extends LinearLayout {
         if (heightOfHeader < this.heightOfHeader) {
             heightOfHeader = this.heightOfHeader;
         }
+        currentScrollDistance = heightOfHeader;
         headerLayoutParams.height = heightOfHeader;
         header.setLayoutParams(headerLayoutParams);
     }
@@ -164,7 +165,7 @@ public class PullToScaleHeaderLayout extends LinearLayout {
         }
         currentScrollDistance = scrollDistance;
         notifyHeaderScrollChanged(currentScrollDistance);
-        scrollTo(0,-currentScrollDistance);
+        scrollTo(0,heightOfHeader - currentScrollDistance);
     }
 
     public void setOnHeaderScrollChangedListener(OnHeaderScrollChangedListener onHeaderScrollChangedListener) {
