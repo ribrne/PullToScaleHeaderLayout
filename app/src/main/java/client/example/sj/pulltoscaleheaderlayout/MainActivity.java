@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initScrollToScaleHeaderLayout() {
         ArrayList<String> arrayList = new ArrayList<>();
-        for(int i = 0 ; i < 13; i++) {
+        for(int i = 0 ; i < 15; i++) {
             arrayList.add("text" + i);
         }
         arrayAdapter = new ArrayAdapter<>(this,R.layout.list_item_layout,arrayList);

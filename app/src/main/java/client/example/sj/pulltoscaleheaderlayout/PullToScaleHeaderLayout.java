@@ -17,7 +17,7 @@ import android.widget.Scroller;
  */
 public class PullToScaleHeaderLayout extends ListView {
 
-    static final int SCROLL_DURATION = 500;
+    static final int SCROLL_DURATION = 300;
 
     static final float OFFSET = 4f;
 
@@ -47,15 +47,17 @@ public class PullToScaleHeaderLayout extends ListView {
 
     private int mLastDistance;
 
+    private int currentHeightOfHeader;
+
     private int currentMode = -1;
 
     private int mRecordDistance;
 
-    private boolean isAllowedToScrollBack;
-
     private boolean isTouchEventConsumed;
 
     private boolean isResetCoordinateNeeded;
+
+    private boolean isAllowToScrollBack;
 
     private Interpolator interpolator;
 
@@ -78,6 +80,7 @@ public class PullToScaleHeaderLayout extends ListView {
         footer = new View(context,attributeSet);
         interpolator = new DecelerateInterpolator();
         scroller = new Scroller(context,interpolator);
+        scroller.forceFinished(false);
         headerLayoutParams = new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,heightOfHeader);
         footerLayoutParams = new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,heightOfFooter);
         addHeaderView(header);
@@ -102,8 +105,13 @@ public class PullToScaleHeaderLayout extends ListView {
         if (newHeight < this.heightOfActionBar) {
             newHeight = this.heightOfActionBar;
         }
-        notifyHeaderScrollChanged(newHeight);
-        headerLayoutParams.height = newHeight;
+        if (newHeight == currentHeightOfHeader) {
+            return;
+        }
+        Log.e("PullScrollHeader","" + mLastDistance + " " + "mLastY" + mLastY + " " + "mDownY" + mDownY + " " + "record" + mRecordDistance + " " + "新高度" + newHeight + " " + "headerHeight" + currentHeightOfHeader);
+        currentHeightOfHeader = newHeight;
+        notifyHeaderScrollChanged(currentHeightOfHeader);
+        headerLayoutParams.height = currentHeightOfHeader;
         header.setLayoutParams(headerLayoutParams);
     }
 
@@ -125,7 +133,7 @@ public class PullToScaleHeaderLayout extends ListView {
             case MotionEvent.ACTION_DOWN:
                 mDownY = mLastY = ev.getY() ;
                 isTouchEventConsumed = false;
-                isAllowedToScrollBack = false;
+                isAllowToScrollBack = false;
                 scroller.forceFinished(false);
                 recordScrollDistance();
                 break;
@@ -143,11 +151,11 @@ public class PullToScaleHeaderLayout extends ListView {
                 resetCoordinateIfNeeded();
                 resetCoordinateWhenHeaderReachesTheEnd();
                 diff = mLastY - mDownY;
-                if (diff <= -1f) {
+                if (diff <= -OFFSET) {
                     currentMode = SCROLL_UP;
                     mLastDistance = (int)diff;
                     scrolling();
-                } else if (diff >= 1f) {
+                } else if (diff >= OFFSET) {
                     clearFocus();
                     currentMode = SCROLL_DOWN;
                     mLastDistance = (int) diff;
@@ -156,9 +164,9 @@ public class PullToScaleHeaderLayout extends ListView {
                 break;
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
-                isAllowedToScrollBack = true;
+                isAllowToScrollBack = true;
                 isTouchEventConsumed = false;
-                if (headerLayoutParams.height > heightOfHeader) {
+                if (currentHeightOfHeader > heightOfHeader) {
                     scrollBackToTop();
                 }
                 break;
@@ -177,38 +185,38 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     private void recordScrollDistance() {
-        if (headerLayoutParams.height >= heightOfActionBar) {
-            mRecordDistance = (int) ((headerLayoutParams.height - heightOfHeader) * FRICTION);
+        if (currentHeightOfHeader >= heightOfActionBar) {
+            mRecordDistance = (int) ((currentHeightOfHeader - heightOfHeader) * FRICTION);
         }
     }
 
     private void resetCoordinateWhenHeaderReachesTheEnd() {
         if (isFirstViewVisible() && isLastViewVisible()) {
-            if (headerLayoutParams.height == heightOfActionBar) {
-                mRecordDistance = (int) ((headerLayoutParams.height - heightOfHeader) * FRICTION);
-                if (mLastY - mDownY <= -1) {
+            if (currentHeightOfHeader == heightOfActionBar) {
+                mRecordDistance = (int) ((currentHeightOfHeader - heightOfHeader) * FRICTION);
+                if (mLastY - mDownY < mLastDistance) {
                     mDownY = mLastY;
                 }
             }
         }
         if(isFirstViewVisible()) {
-            if (headerLayoutParams.height == heightOfActionBar) {
-                mRecordDistance = (int) ((headerLayoutParams.height - heightOfHeader) * FRICTION);
-                mDownY = mLastY - OFFSET;
-                Log.e("PullScrollHeader","重置坐标" + mDownY + "原来的坐标" + mLastY + "高度" + headerLayoutParams.height);
+            if (currentHeightOfHeader >= heightOfActionBar && currentHeightOfHeader <= heightOfActionBar + OFFSET) {
+                mRecordDistance = (int) ((currentHeightOfHeader - heightOfHeader) * FRICTION);
+                if (mLastY - mDownY > mLastDistance) {
+                    mDownY = mLastY - OFFSET;
+                }
             }
         }
     }
 
     private void scrollBackToTop() {
-        int height = headerLayoutParams.height;
-        scroller.startScroll(0, height, 0, heightOfHeader - height,
+        scroller.startScroll(0, currentHeightOfHeader, 0, heightOfHeader - currentHeightOfHeader,
                 SCROLL_DURATION);
         invalidate();
     }
 
     private void detectTouchEventConsumed() {
-        if (isFirstViewVisible() && headerLayoutParams.height > heightOfActionBar) {
+        if (isFirstViewVisible() && currentHeightOfHeader > heightOfActionBar) {
             clearFocus();
             isTouchEventConsumed = true;
         } else {
@@ -218,13 +226,11 @@ public class PullToScaleHeaderLayout extends ListView {
 
     private void scrolling() {
         detectTouchEventConsumed();
-        if (currentMode == SCROLL_DOWN) {
-            if (isFirstViewVisible()) {
+        if (isFirstViewVisible()) {
+            if (currentMode == SCROLL_DOWN) {
                 isBeingDraggedFromTop();
             }
-        }
-        if (currentMode == SCROLL_UP) {
-            if (headerLayoutParams.height > heightOfActionBar) {
+            if (currentMode == SCROLL_UP) {
                 isBeingDraggedFromTop();
             }
         }
@@ -233,23 +239,18 @@ public class PullToScaleHeaderLayout extends ListView {
     private void isBeingDraggedFromTop() {
         int totalScrollDistance = (int) ((mLastDistance + mRecordDistance) / FRICTION);
         int changedHeight = heightOfHeader + totalScrollDistance;
-            Log.e("PullScrollHeader","原来的高度" + headerLayoutParams.height + " " + "newHeight" + changedHeight + " " + "mLast" + mLastDistance + " "  + "dy" + mDownY + " "  + "lY" + mLastY + " "  + "记录的高度" + mRecordDistance);
         resizeHeightOfHeader(changedHeight);
     }
 
     private void notifyHeaderScrollChanged(int changedHeight) {
         int scrollDistance = changedHeight - heightOfHeader;
+        if (onHeaderScrollChangedListener == null) {
+            return;
+        }
         if (scrollDistance > 0) {
-            if (this.onHeaderScrollChangedListener != null) {
-                onHeaderScrollChangedListener.headerScrollChanged(scrollDistance);
-            }
+            onHeaderScrollChangedListener.headerScrollChanged(scrollDistance);
         } else {
-            if (scrollDistance <= heightOfActionBar - heightOfHeader) {
-                scrollDistance = heightOfActionBar - heightOfHeader;
-            }
-            if (this.onHeaderScrollChangedListener != null) {
-                onHeaderScrollChangedListener.actionBarTranslate(scrollDistance);
-            }
+            onHeaderScrollChangedListener.actionBarTranslate(scrollDistance);
         }
     }
 
@@ -271,12 +272,10 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     @Override
-    public synchronized void computeScroll() {
+    public void computeScroll() {
         if (scroller.computeScrollOffset()) {
-            if (isAllowedToScrollBack) {
-                if (heightOfHeader < headerLayoutParams.height) {
-                    resizeHeightOfHeader(scroller.getCurrY());
-                }
+            if (isAllowToScrollBack && currentHeightOfHeader >= heightOfHeader) {
+                resizeHeightOfHeader(scroller.getCurrY());
             }
             super.computeScroll();
         }
