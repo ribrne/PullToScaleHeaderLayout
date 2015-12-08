@@ -3,7 +3,6 @@ package client.example.sj.pulltoscaleheaderlayout;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -15,7 +14,7 @@ import java.util.ArrayList;
 /**
  * 不下拉头部展现毛玻璃效果，下拉清晰放大头部
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivityMain extends AppCompatActivity {
 
     private final static int MAX_HEIGHT = 160;
 
@@ -38,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main_main);
         initScrollToScaleHeaderLayout();
     }
 

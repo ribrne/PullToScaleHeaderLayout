@@ -1,20 +1,28 @@
 package client.example.sj.pulltoscaleheaderlayout;
 
+import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.AbsListView;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.LinearLayout;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.Scroller;
 
 /**
  * Created by sj on 15/12/2.
  */
-public class PullToScaleHeaderLayout extends ListView {
+public class PullToScaleHeaderLayout extends LinearLayout {
 
     static final int SCROLL_DURATION = 500;
 
@@ -25,6 +33,8 @@ public class PullToScaleHeaderLayout extends ListView {
     static final int SCROLL_DOWN = 1;
 
     static final int SCROLL_UP = 2;
+
+    private ListView listView;
 
     private View header;
 
@@ -75,6 +85,7 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     private void init (Context context,AttributeSet attributeSet) {
+        listView = createListView(context,attributeSet);
         header = new View(context,attributeSet);
         footer = new View(context,attributeSet);
         interpolator = new DecelerateInterpolator();
@@ -82,8 +93,37 @@ public class PullToScaleHeaderLayout extends ListView {
         scroller.forceFinished(false);
         headerLayoutParams = new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,heightOfHeader);
         footerLayoutParams = new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,heightOfFooter);
-        addHeaderView(header);
-        addFooterView(footer);
+        listView.addHeaderView(header);
+        listView.addFooterView(footer);
+        addView(listView);
+    }
+
+    private ListView createListView(Context context, AttributeSet attributeSet) {
+        final ListView lv;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+            lv = new InternalListViewSDK9(context, attributeSet);
+        } else {
+            lv = new InternalListView(context, attributeSet);
+        }
+        // Set it to this so it can be used in ListActivity/ListFragment
+        lv.setId(android.R.id.list);
+        return lv;
+    }
+
+    public void setAdapter(BaseAdapter baseAdapter) {
+        listView.setAdapter(baseAdapter);
+    }
+
+    public void setOnItemClickListener(AdapterView.OnItemClickListener onItemClickListener) {
+        listView.setOnItemClickListener(onItemClickListener);
+    }
+
+    public void addHeaderView(View view) {
+        listView.addHeaderView(view);
+    }
+
+    public void setOnScrollListener(AbsListView.OnScrollListener onScrollListener) {
+        listView.setOnScrollListener(onScrollListener);
     }
 
     public void setHeightOfActionBar(int height) {
@@ -126,15 +166,40 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent ev) {
-        switch (ev.getActionMasked()) {
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        int action = ev.getAction();
+        if (action == MotionEvent.ACTION_CANCEL
+                || action == MotionEvent.ACTION_UP) {
+            isTouchEventConsumed = false;
+            return false;
+        }
+
+        if (action != MotionEvent.ACTION_DOWN && isTouchEventConsumed) {
+            return true;
+        }
+
+        switch (action) {
+            case MotionEvent.ACTION_MOVE:
+                mLastY = ev.getY();
+                detectTouchEventConsumed();
+                break;
             case MotionEvent.ACTION_DOWN:
-                mDownY = mLastY = ev.getY() ;
+                mDownY = mLastY = ev.getY();
                 isTouchEventConsumed = false;
                 isAllowToScrollBack = false;
                 scroller.forceFinished(false);
                 recordScrollDistance();
                 break;
+        }
+        return isTouchEventConsumed;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        switch (ev.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                mDownY = mLastY = ev.getY() ;
+                return true;
             case MotionEvent.ACTION_POINTER_UP:
                 recordScrollDistance();
                 isResetCoordinateNeeded = true;
@@ -144,35 +209,39 @@ public class PullToScaleHeaderLayout extends ListView {
                 recordScrollDistance();
                 break;
             case MotionEvent.ACTION_MOVE:
-                mLastY = ev.getY();
-                final float diff;
-                resetCoordinateIfNeeded();
-                resetCoordinateWhenHeaderReachesTheEnd();
-                diff = mLastY - mDownY;
-                if (diff <= -OFFSET) {
-                    currentMode = SCROLL_UP;
-                    mLastDistance = (int)diff;
-                    scrolling();
-                } else if (diff >= OFFSET) {
-                    clearFocus();
-                    currentMode = SCROLL_DOWN;
-                    mLastDistance = (int) diff;
-                    scrolling();
+                if (isTouchEventConsumed) {
+                    mLastY = ev.getY();
+                    final float diff;
+                    resetCoordinateIfNeeded();
+                    resetCoordinateWhenHeaderReachesTheEnd();
+                    diff = mLastY - mDownY;
+                    Log.e("fuck","y" + mDownY + " newY" + mLastY + " diff" + diff + " record" + mRecordDistance);
+                    if (diff <= -OFFSET) {
+                        currentMode = SCROLL_UP;
+                        mLastDistance = (int)diff;
+                        scrolling();
+                    } else if (diff >= OFFSET) {
+                        clearFocus();
+                        currentMode = SCROLL_DOWN;
+                        mLastDistance = (int) diff;
+                        scrolling();
+                    }
+                    return true;
                 }
                 break;
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
-                isAllowToScrollBack = true;
-                isTouchEventConsumed = false;
-                if (currentHeightOfHeader > heightOfHeader) {
-                    scrollBackToTop();
+                if (isTouchEventConsumed) {
+                    isTouchEventConsumed = false;
+                    isAllowToScrollBack = true;
+                    if (currentHeightOfHeader > heightOfHeader) {
+                        scrollBackToTop();
+                    }
+                    return true;
                 }
                 break;
         }
-        if (isTouchEventConsumed) {
-            return true;
-        }
-        return super.onTouchEvent(ev);
+        return isTouchEventConsumed;
     }
 
     private void resetCoordinateIfNeeded() {
@@ -214,7 +283,7 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     private void detectTouchEventConsumed() {
-        if (isFirstViewVisible() && currentHeightOfHeader > heightOfActionBar) {
+        if (isFirstViewVisible() && currentHeightOfHeader >= heightOfActionBar) {
             clearFocus();
             isTouchEventConsumed = true;
         } else {
@@ -223,7 +292,6 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     private void scrolling() {
-        detectTouchEventConsumed();
         if (isFirstViewVisible()) {
             if (currentMode == SCROLL_DOWN) {
                 isBeingDraggedFromTop();
@@ -262,11 +330,11 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     private boolean isLastViewVisible() {
-        View view = getChildAt(getCount() - 1);
+        View view = getChildAt(listView.getCount() - 1);
         if (view == null) {
             return false;
         }
-        return view.getBottom() <= getBottom();
+        return view.getBottom() <= listView.getBottom();
     }
 
     @Override
@@ -289,5 +357,66 @@ public class PullToScaleHeaderLayout extends ListView {
         void actionBarTranslate(float translateDistance);
     }
 
+    static class InternalListView extends ListView {
+
+        public InternalListView(Context context, AttributeSet attrs) {
+            super(context, attrs);
+            setOverScrollMode(OVER_SCROLL_NEVER);
+        }
+
+        @Override
+        protected void dispatchDraw(Canvas canvas) {
+            /**
+             * This is a bit hacky, but Samsung's ListView has got a bug in it
+             * when using Header/Footer Views and the list is empty. This masks
+             * the issue so that it doesn't cause an FC. See Issue #66.
+             */
+            try {
+                super.dispatchDraw(canvas);
+            } catch (IndexOutOfBoundsException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public boolean dispatchTouchEvent(MotionEvent ev) {
+            /**
+             * This is a bit hacky, but Samsung's ListView has got a bug in it
+             * when using Header/Footer Views and the list is empty. This masks
+             * the issue so that it doesn't cause an FC. See Issue #66.
+             */
+            try {
+                return super.dispatchTouchEvent(ev);
+            } catch (IndexOutOfBoundsException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        @Override
+        public void setAdapter(ListAdapter adapter) {
+            super.setAdapter(adapter);
+        }
+
+    }
+
+    @TargetApi(9)
+    final static class InternalListViewSDK9 extends InternalListView {
+
+        public InternalListViewSDK9(Context context, AttributeSet attrs) {
+            super(context, attrs);
+        }
+
+        @Override
+        protected boolean overScrollBy(int deltaX, int deltaY, int scrollX,
+                                       int scrollY, int scrollRangeX, int scrollRangeY,
+                                       int maxOverScrollX, int maxOverScrollY, boolean isTouchEvent) {
+
+            final boolean returnValue = super.overScrollBy(deltaX, deltaY,
+                    scrollX, scrollY, scrollRangeX, scrollRangeY,
+                    maxOverScrollX, maxOverScrollY, isTouchEvent);
+            return returnValue;
+        }
+    }
 
 }

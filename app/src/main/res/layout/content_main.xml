@@ -9,8 +9,8 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context="client.example.sj.pulltoscaleheaderlayout.MainActivity"
-    tools:showIn="@layout/activity_main">
+    tools:context=".MainActivityMain"
+    tools:showIn="@layout/activity_main_main">
 
     <TextView
         android:layout_width="wrap_content"
