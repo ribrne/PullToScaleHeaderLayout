@@ -137,15 +137,18 @@ public class PullToScaleHeaderLayout extends LinearLayout {
 
     public void setHeightOfFooter(int heightOfFooter) {
         this.heightOfFooter = heightOfFooter;
-        resizeHeightOfFooter(this.heightOfFooter);
+        resizeFooter(this.heightOfFooter);
     }
 
-    public void resizeHeader(int newHeight) {
-        headerLayoutParams.height = newHeight;
+    public void resizeHeader(int heightOfHeader) {
+        if (heightOfHeader < this.heightOfHeader) {
+            heightOfHeader = this.heightOfHeader;
+        }
+        headerLayoutParams.height = heightOfHeader;
         header.setLayoutParams(headerLayoutParams);
     }
 
-    public void resizeHeightOfFooter(int heightOfFooter) {
+    public void resizeFooter(int heightOfFooter) {
         if (heightOfFooter < this.heightOfFooter) {
             heightOfFooter = this.heightOfFooter;
         }
