@@ -5,7 +5,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.os.Build;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -137,7 +136,7 @@ public class PullToScaleHeaderLayout extends LinearLayout {
 
     public void setHeightOfFooter(int heightOfFooter) {
         this.heightOfFooter = heightOfFooter;
-        resizeFooter(this.heightOfFooter);
+        resizeHeightOfFooter(this.heightOfFooter);
     }
 
     public void resizeHeader(int heightOfHeader) {
@@ -148,7 +147,7 @@ public class PullToScaleHeaderLayout extends LinearLayout {
         header.setLayoutParams(headerLayoutParams);
     }
 
-    public void resizeFooter(int heightOfFooter) {
+    public void resizeHeightOfFooter(int heightOfFooter) {
         if (heightOfFooter < this.heightOfFooter) {
             heightOfFooter = this.heightOfFooter;
         }
