@@ -56,7 +56,7 @@ public class PullToScaleHeaderLayout extends LinearLayout {
 
     private int mLastDistance;
 
-    private int currentHeightOfHeader;
+    private int currentScrollDistance;
 
     private int currentMode = -1;
 
@@ -132,7 +132,7 @@ public class PullToScaleHeaderLayout extends LinearLayout {
 
     public void setHeightOfHeader(int heightOfHeader) {
         this.heightOfHeader = heightOfHeader;
-        resizeHeightOfHeader(this.heightOfHeader);
+        resizeHeader(this.heightOfHeader);
     }
 
     public void setHeightOfFooter(int heightOfFooter) {
@@ -140,16 +140,8 @@ public class PullToScaleHeaderLayout extends LinearLayout {
         resizeHeightOfFooter(this.heightOfFooter);
     }
 
-    public void resizeHeightOfHeader(int newHeight) {
-        if (newHeight < this.heightOfActionBar) {
-            newHeight = this.heightOfActionBar;
-        }
-        if (newHeight == currentHeightOfHeader) {
-            return;
-        }
-        currentHeightOfHeader = newHeight;
-        notifyHeaderScrollChanged(currentHeightOfHeader);
-        headerLayoutParams.height = currentHeightOfHeader;
+    public void resizeHeader(int newHeight) {
+        headerLayoutParams.height = newHeight;
         header.setLayoutParams(headerLayoutParams);
     }
 
@@ -159,6 +151,18 @@ public class PullToScaleHeaderLayout extends LinearLayout {
         }
         footerLayoutParams.height = heightOfFooter;
         footer.setLayoutParams(footerLayoutParams);
+    }
+
+    public void dragging(int scrollDistance) {
+        if (scrollDistance < this.heightOfActionBar) {
+            scrollDistance = this.heightOfActionBar;
+        }
+        if (scrollDistance == currentScrollDistance) {
+            return;
+        }
+        currentScrollDistance = scrollDistance;
+        notifyHeaderScrollChanged(currentScrollDistance);
+        scrollTo(0,-currentScrollDistance);
     }
 
     public void setOnHeaderScrollChangedListener(OnHeaderScrollChangedListener onHeaderScrollChangedListener) {
@@ -215,7 +219,6 @@ public class PullToScaleHeaderLayout extends LinearLayout {
                     resetCoordinateIfNeeded();
                     resetCoordinateWhenHeaderReachesTheEnd();
                     diff = mLastY - mDownY;
-                    Log.e("fuck","y" + mDownY + " newY" + mLastY + " diff" + diff + " record" + mRecordDistance);
                     if (diff <= -OFFSET) {
                         currentMode = SCROLL_UP;
                         mLastDistance = (int)diff;
@@ -234,7 +237,7 @@ public class PullToScaleHeaderLayout extends LinearLayout {
                 if (isTouchEventConsumed) {
                     isTouchEventConsumed = false;
                     isAllowToScrollBack = true;
-                    if (currentHeightOfHeader > heightOfHeader) {
+                    if (currentScrollDistance > heightOfHeader) {
                         scrollBackToTop();
                     }
                     return true;
@@ -252,23 +255,23 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     }
 
     private void recordScrollDistance() {
-        if (currentHeightOfHeader >= heightOfActionBar) {
-            mRecordDistance = (int) ((currentHeightOfHeader - heightOfHeader) * FRICTION);
+        if (currentScrollDistance >= heightOfActionBar) {
+            mRecordDistance = (int) ((currentScrollDistance - heightOfHeader) * FRICTION);
         }
     }
 
     private void resetCoordinateWhenHeaderReachesTheEnd() {
         if (isFirstViewVisible() && isLastViewVisible()) {
-            if (currentHeightOfHeader == heightOfActionBar) {
-                mRecordDistance = (int) ((currentHeightOfHeader - heightOfHeader) * FRICTION);
+            if (currentScrollDistance == heightOfActionBar) {
+                mRecordDistance = (int) ((currentScrollDistance - heightOfHeader) * FRICTION);
                 if (mLastY - mDownY < mLastDistance) {
                     mDownY = mLastY;
                 }
             }
         }
         if(isFirstViewVisible()) {
-            if (currentHeightOfHeader >= heightOfActionBar && currentHeightOfHeader <= heightOfActionBar + OFFSET) {
-                mRecordDistance = (int) ((currentHeightOfHeader - heightOfHeader) * FRICTION);
+            if (currentScrollDistance >= heightOfActionBar && currentScrollDistance <= heightOfActionBar + OFFSET) {
+                mRecordDistance = (int) ((currentScrollDistance - heightOfHeader) * FRICTION);
                 if (mLastY - mDownY > mLastDistance) {
                     mDownY = mLastY - OFFSET;
                 }
@@ -277,13 +280,13 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     }
 
     private void scrollBackToTop() {
-        scroller.startScroll(0, currentHeightOfHeader, 0, heightOfHeader - currentHeightOfHeader,
+        scroller.startScroll(0, currentScrollDistance, 0, heightOfHeader - currentScrollDistance,
                 SCROLL_DURATION);
         invalidate();
     }
 
     private void detectTouchEventConsumed() {
-        if (isFirstViewVisible() && currentHeightOfHeader >= heightOfActionBar) {
+        if (isFirstViewVisible() && currentScrollDistance >= heightOfActionBar) {
             clearFocus();
             isTouchEventConsumed = true;
         } else {
@@ -305,7 +308,7 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     private void isBeingDraggedFromTop() {
         int totalScrollDistance = (int) ((mLastDistance + mRecordDistance) / FRICTION);
         int changedHeight = heightOfHeader + totalScrollDistance;
-        resizeHeightOfHeader(changedHeight);
+        dragging(changedHeight);
     }
 
     private void notifyHeaderScrollChanged(int changedHeight) {
@@ -340,8 +343,8 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     @Override
     public void computeScroll() {
         if (scroller.computeScrollOffset()) {
-            if (isAllowToScrollBack && currentHeightOfHeader >= heightOfHeader) {
-                resizeHeightOfHeader(scroller.getCurrY());
+            if (isAllowToScrollBack && currentScrollDistance >= heightOfHeader) {
+                dragging(scroller.getCurrY());
             }
             super.computeScroll();
         }
