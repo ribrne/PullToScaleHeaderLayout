@@ -20,7 +20,7 @@ public class MainActivityMain extends AppCompatActivity {
 
     private final static int MIN_HEIGHT = 48;
 
-    private PullToScaleHeaderLayout pullToScrollLayout;
+    private Pull pullToScrollLayout;
 
     private ImageView fadeCover;
 
@@ -50,7 +50,7 @@ public class MainActivityMain extends AppCompatActivity {
         heightOfHeader = dipToPx(this,MAX_HEIGHT);
         heightOfFooter = dipToPx(this,MIN_HEIGHT);
         heightOfActionBar = dipToPx(this,MIN_HEIGHT);
-        pullToScrollLayout = (PullToScaleHeaderLayout)findViewById(R.id.pull_to_scroll_layout);
+        pullToScrollLayout = (Pull)findViewById(R.id.pull_to_scroll_layout);
         fadeCover = (ImageView)findViewById(R.id.fade_cover);
         cover = (ImageView)findViewById(R.id.cover);
 //        fadeCover.setVisibility(View.GONE);
@@ -59,7 +59,7 @@ public class MainActivityMain extends AppCompatActivity {
         pullToScrollLayout.setHeightOfHeader(heightOfHeader);
         pullToScrollLayout.setHeightOfFooter(heightOfFooter);
         pullToScrollLayout.setAdapter(arrayAdapter);
-        pullToScrollLayout.setOnHeaderScrollChangedListener(new PullToScaleHeaderLayout.OnHeaderScrollChangedListener() {
+        pullToScrollLayout.setOnHeaderScrollChangedListener(new Pull.OnHeaderScrollChangedListener() {
             @Override
             public void headerScrollChanged(float scrollDistance) {
                 float friction = (scrollDistance + heightOfHeader) / heightOfHeader;

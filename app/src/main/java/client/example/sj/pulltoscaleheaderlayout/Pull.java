@@ -1,27 +1,22 @@
 package client.example.sj.pulltoscaleheaderlayout;
 
-import android.annotation.TargetApi;
 import android.content.Context;
-import android.graphics.Canvas;
-import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.AbsListView;
-import android.widget.AdapterView;
-import android.widget.BaseAdapter;
-import android.widget.LinearLayout;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.Scroller;
 
 /**
- * Created by sj on 15/12/2.
+ * Created by sj on 15/12/9.
  */
-public class PullToScaleHeaderLayout extends LinearLayout {
+public class Pull extends ListView {
 
     static final int SCROLL_DURATION = 500;
 
@@ -32,8 +27,6 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     static final int SCROLL_DOWN = 1;
 
     static final int SCROLL_UP = 2;
-
-    private ListView listView;
 
     private View header;
 
@@ -51,11 +44,17 @@ public class PullToScaleHeaderLayout extends LinearLayout {
 
     private float mLastY;
 
-    private int mLastDistance;
+    private ViewConfiguration viewConfiguration;
+
+    private int mTouchSlop;
 
     private int currentHeightOfHeader;
 
     private int currentMode = -1;
+
+    private int mPreviousScrollDistance;
+
+    private int mLastScrollDistance;
 
     private int mRecordDistance;
 
@@ -71,63 +70,19 @@ public class PullToScaleHeaderLayout extends LinearLayout {
 
     private Scroller scroller;
 
-    public PullToScaleHeaderLayout(Context context, AttributeSet attrs) {
+    public Pull(Context context, AttributeSet attrs) {
         super(context, attrs);
         init(context,attrs);
     }
 
-    public PullToScaleHeaderLayout(Context context) {
+    public Pull(Context context) {
         super(context);
         init(context,null);
     }
 
     private void init (Context context,AttributeSet attributeSet) {
-        setOrientation(VERTICAL);
-        listView = createListView(context,attributeSet);
-        listView.setOnTouchListener(new OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getActionMasked()) {
-                    case MotionEvent.ACTION_DOWN:
-                        mDownY = mLastY = event.getY();
-                        isTouchIntercept = false;
-                        isAllowToScrollBack = false;
-                        scroller.forceFinished(false);
-                        recordScrollDistance();
-                        return true;
-                    case MotionEvent.ACTION_POINTER_UP:
-                        recordScrollDistance();
-                        isResetCoordinateNeeded = true;
-                        break;
-                    case MotionEvent.ACTION_POINTER_DOWN:
-                        isResetCoordinateNeeded = true;
-                        recordScrollDistance();
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        mLastY = event.getY();
-                        resetCoordinateIfNeeded();
-                        calculateScrollDistance();
-                        detectTouchIntercept();
-                        if (isTouchIntercept) {
-                            dragging();
-                            return true;
-                        }
-                        break;
-                    case MotionEvent.ACTION_CANCEL:
-                    case MotionEvent.ACTION_UP:
-                        mLastDistance = 0;
-                        isAllowToScrollBack = true;
-                        if (currentHeightOfHeader > heightOfHeader) {
-                            scrollBackToTop();
-                        }
-                        break;
-                }
-                if (isTouchIntercept) {
-                    return true;
-                }
-                return false;
-            }
-        });
+        viewConfiguration = ViewConfiguration.get(context);
+        mTouchSlop = viewConfiguration.getScaledTouchSlop();
         header = new View(context,attributeSet);
         footer = new View(context,attributeSet);
         interpolator = new DecelerateInterpolator();
@@ -135,37 +90,8 @@ public class PullToScaleHeaderLayout extends LinearLayout {
         scroller.forceFinished(false);
         headerLayoutParams = new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         footerLayoutParams = new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        listView.addHeaderView(header);
-        listView.addFooterView(footer);
-        addView(listView);
-    }
-
-    private ListView createListView(Context context, AttributeSet attributeSet) {
-        final ListView lv;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-            lv = new InternalListViewSDK9(context, attributeSet);
-        } else {
-            lv = new InternalListView(context, attributeSet);
-        }
-        // Set it to this so it can be used in ListActivity/ListFragment
-        lv.setId(android.R.id.list);
-        return lv;
-    }
-
-    public void setAdapter(BaseAdapter baseAdapter) {
-        listView.setAdapter(baseAdapter);
-    }
-
-    public void setOnItemClickListener(AdapterView.OnItemClickListener onItemClickListener) {
-        listView.setOnItemClickListener(onItemClickListener);
-    }
-
-    public void addHeaderView(View view) {
-        listView.addHeaderView(view);
-    }
-
-    public void setOnScrollListener(AbsListView.OnScrollListener onScrollListener) {
-        listView.setOnScrollListener(onScrollListener);
+        addHeaderView(header);
+        addFooterView(footer);
     }
 
     public void setHeightOfActionBar(int height) {
@@ -193,7 +119,6 @@ public class PullToScaleHeaderLayout extends LinearLayout {
         notifyHeaderScrollChanged(currentHeightOfHeader);
         headerLayoutParams.height = currentHeightOfHeader;
         header.setLayoutParams(headerLayoutParams);
-//        scrollTo(0,heightOfHeader - currentHeightOfHeader);
     }
 
     public void setOnHeaderScrollChangedListener(OnHeaderScrollChangedListener onHeaderScrollChangedListener) {
@@ -201,9 +126,15 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     }
 
     @Override
+    public boolean onInterceptHoverEvent(MotionEvent event) {
+        return super.onInterceptHoverEvent(event);
+    }
+
+    @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                mLastScrollDistance = 0;
                 mDownY = mLastY = ev.getY();
                 isTouchIntercept = false;
                 isAllowToScrollBack = false;
@@ -211,7 +142,7 @@ public class PullToScaleHeaderLayout extends LinearLayout {
                 recordScrollDistance();
                 break;
             case MotionEvent.ACTION_MOVE:
-                isTouchIntercept = true;
+                mDownY = mLastY;
                 break;
         }
         return super.onInterceptTouchEvent(ev);
@@ -220,20 +151,19 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         switch (ev.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN:
-                mDownY = mLastY = ev.getY();
-                isTouchIntercept = false;
-                isAllowToScrollBack = false;
-                scroller.forceFinished(false);
-                recordScrollDistance();
-                return true;
             case MotionEvent.ACTION_POINTER_UP:
-                recordScrollDistance();
-                isResetCoordinateNeeded = true;
+                if (isTouchIntercept) {
+                    isResetCoordinateNeeded = true;
+                    recordScrollDistance();
+                    return true;
+                }
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
-                isResetCoordinateNeeded = true;
-                recordScrollDistance();
+                if (isTouchIntercept) {
+                    isResetCoordinateNeeded = true;
+                    recordScrollDistance();
+                    return true;
+                }
                 break;
             case MotionEvent.ACTION_MOVE:
                 mLastY = ev.getY();
@@ -242,14 +172,17 @@ public class PullToScaleHeaderLayout extends LinearLayout {
                 detectTouchIntercept();
                 if (isTouchIntercept) {
                     dragging();
+                    return true;
                 }
                 break;
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
-                mLastDistance = 0;
-                isAllowToScrollBack = true;
-                if (currentHeightOfHeader > heightOfHeader) {
-                    scrollBackToTop();
+                if (isTouchIntercept) {
+                    isAllowToScrollBack = true;
+                    if (currentHeightOfHeader > heightOfHeader) {
+                        scrollBackToTop();
+                    }
+                    return true;
                 }
                 break;
         }
@@ -260,26 +193,32 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     }
 
     private void detectTouchIntercept() {
+        if (Math.abs(mLastScrollDistance) < OFFSET) {
+            isTouchIntercept = false;
+            return;
+        }
         if (currentHeightOfHeader > heightOfActionBar) {
             isTouchIntercept = true;
         } else {
             if (isFirstViewVisible()) {
-                if (mLastDistance >= OFFSET) {
+                if (mLastScrollDistance >= OFFSET) {
                     isTouchIntercept = true;
-                } else if(mLastDistance <= -OFFSET) {
+                } else if(mLastScrollDistance <= -OFFSET) {
                     isTouchIntercept = false;
                 }
             } else {
                 isTouchIntercept = false;
             }
         }
+        Log.e("PullScaleLayout", "是否捕获事件" + isTouchIntercept + "第一个view可见" + isFirstViewVisible() + " previous" + mPreviousScrollDistance + " mLast" + mLastScrollDistance + " header" + currentHeightOfHeader
+                + " header" + header.getTop());
     }
 
     private void judgeTouchDirection() {
         float diff = mLastY - mDownY;
-        if (diff <= -1) {
+        if (diff <= -OFFSET) {
             currentMode = SCROLL_UP;
-        } else {
+        } else if(diff > OFFSET) {
             currentMode = SCROLL_DOWN;
         }
     }
@@ -298,10 +237,11 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     }
 
     private void calculateScrollDistance() {
+        mPreviousScrollDistance = Math.round(mLastY - mDownY);
         if (currentHeightOfHeader >= heightOfActionBar && currentHeightOfHeader <= heightOfActionBar + OFFSET) {
             mRecordDistance = (int) ((currentHeightOfHeader - heightOfHeader) * FRICTION);
-            if (mLastDistance != 0) {
-                if (mLastY - mDownY > mLastDistance) {
+            if (mLastScrollDistance != 0) {
+                if (mPreviousScrollDistance > mLastScrollDistance) {
                     mDownY = mLastY - OFFSET;
                 } else {
                     mDownY = mLastY + OFFSET;
@@ -318,7 +258,7 @@ public class PullToScaleHeaderLayout extends LinearLayout {
                 }
             }
         }
-        mLastDistance = Math.round(mLastY - mDownY);
+        mLastScrollDistance = Math.round(mLastY - mDownY);
     }
 
     private void scrollBackToTop() {
@@ -328,13 +268,13 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     }
 
     private void dragging() {
-        if (isFirstViewVisible()) {
+        if (isTouchIntercept) {
             isBeingDraggedFromTop();
         }
     }
 
     private void isBeingDraggedFromTop() {
-        int totalScrollDistance = (int) ((mLastDistance + mRecordDistance) / FRICTION);
+        int totalScrollDistance = (int) ((mLastScrollDistance + mRecordDistance) / FRICTION);
         int changedHeight = heightOfHeader + totalScrollDistance;
         resizeHeader(changedHeight);
     }
@@ -352,11 +292,11 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     }
 
     private boolean isFirstViewVisible() {
-        View firstChild = listView.getChildAt(0);
+        View firstChild = getChildAt(0);
         if (firstChild == null) {
             return false;
         } else {
-            return firstChild.getTop() >= listView.getTop() ;
+            return firstChild.getTop() >= getTop();
         }
     }
 
@@ -378,58 +318,6 @@ public class PullToScaleHeaderLayout extends LinearLayout {
     public interface OnHeaderScrollChangedListener {
         void headerScrollChanged(float scrollDistance);
         void actionBarTranslate(float translateDistance);
-    }
-
-    static class InternalListView extends ListView {
-
-        public InternalListView(Context context, AttributeSet attrs) {
-            super(context, attrs);
-            setOverScrollMode(OVER_SCROLL_NEVER);
-        }
-
-        @Override
-        protected void dispatchDraw(Canvas canvas) {
-            try {
-                super.dispatchDraw(canvas);
-            } catch (IndexOutOfBoundsException e) {
-                e.printStackTrace();
-            }
-        }
-
-        @Override
-        public boolean dispatchTouchEvent(MotionEvent ev) {
-            try {
-                return super.dispatchTouchEvent(ev);
-            } catch (IndexOutOfBoundsException e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-
-        @Override
-        public void setAdapter(ListAdapter adapter) {
-            super.setAdapter(adapter);
-        }
-
-    }
-
-    @TargetApi(9)
-    final static class InternalListViewSDK9 extends InternalListView {
-
-        public InternalListViewSDK9(Context context, AttributeSet attrs) {
-            super(context, attrs);
-        }
-
-        @Override
-        protected boolean overScrollBy(int deltaX, int deltaY, int scrollX,
-                                       int scrollY, int scrollRangeX, int scrollRangeY,
-                                       int maxOverScrollX, int maxOverScrollY, boolean isTouchEvent) {
-
-            final boolean returnValue = super.overScrollBy(deltaX, deltaY,
-                    scrollX, scrollY, scrollRangeX, scrollRangeY,
-                    maxOverScrollX, maxOverScrollY, isTouchEvent);
-            return returnValue;
-        }
     }
 
 }
