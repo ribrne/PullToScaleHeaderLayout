@@ -151,6 +151,7 @@ public class PullToScaleHeaderLayout extends ListView {
                 detectTouchIsIntercept();
                 if (Math.abs(mLastDistance) >= OFFSET) {
                     scrolling();
+                    clearFocus();
                 }
                 break;
             case MotionEvent.ACTION_CANCEL:
@@ -184,19 +185,13 @@ public class PullToScaleHeaderLayout extends ListView {
     }
 
     private void calculateScrollDistance() {
-        if (isFirstViewVisible() && isLastViewVisible()) {
-            if (currentHeightOfHeader == heightOfActionBar) {
-                mRecordDistance = (int) ((currentHeightOfHeader - heightOfHeader) * FRICTION);
-                if (mLastY - mDownY < mLastDistance) {
-                    mDownY = mLastY;
-                }
-            }
-        }
         if(isFirstViewVisible()) {
             if (currentHeightOfHeader >= heightOfActionBar && currentHeightOfHeader <= heightOfActionBar + OFFSET) {
                 mRecordDistance = (int) ((currentHeightOfHeader - heightOfHeader) * FRICTION);
                 if (mLastY - mDownY > mLastDistance) {
                     mDownY = mLastY - OFFSET;
+                } else {
+                    mDownY = mLastY + OFFSET;
                 }
             }
         }
