@@ -20,7 +20,7 @@ public class MainActivityMain extends AppCompatActivity {
 
     private final static int MIN_HEIGHT = 48;
 
-    private Pull pullToScrollLayout;
+    private PullToScaleHeaderLayout pullToScrollLayout;
 
     private ImageView fadeCover;
 
@@ -43,14 +43,14 @@ public class MainActivityMain extends AppCompatActivity {
 
     private void initScrollToScaleHeaderLayout() {
         ArrayList<String> arrayList = new ArrayList<>();
-        for(int i = 0 ; i < 15; i++) {
+        for(int i = 0 ; i < 8; i++) {
             arrayList.add("text" + i);
         }
         arrayAdapter = new ArrayAdapter<>(this,R.layout.list_item_layout,arrayList);
         heightOfHeader = dipToPx(this,MAX_HEIGHT);
         heightOfFooter = dipToPx(this,MIN_HEIGHT);
         heightOfActionBar = dipToPx(this,MIN_HEIGHT);
-        pullToScrollLayout = (Pull)findViewById(R.id.pull_to_scroll_layout);
+        pullToScrollLayout = (PullToScaleHeaderLayout)findViewById(R.id.pull_to_scroll_layout);
         fadeCover = (ImageView)findViewById(R.id.fade_cover);
         cover = (ImageView)findViewById(R.id.cover);
 //        fadeCover.setVisibility(View.GONE);
@@ -59,7 +59,7 @@ public class MainActivityMain extends AppCompatActivity {
         pullToScrollLayout.setHeightOfHeader(heightOfHeader);
         pullToScrollLayout.setHeightOfFooter(heightOfFooter);
         pullToScrollLayout.setAdapter(arrayAdapter);
-        pullToScrollLayout.setOnHeaderScrollChangedListener(new Pull.OnHeaderScrollChangedListener() {
+        pullToScrollLayout.setOnHeaderScrollChangedListener(new PullToScaleHeaderLayout.OnHeaderScrollChangedListener() {
             @Override
             public void headerScrollChanged(float scrollDistance) {
                 float friction = (scrollDistance + heightOfHeader) / heightOfHeader;
